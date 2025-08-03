@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Task Manager</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+
+        #loginSection,
+        #menuSection {
+            max-width: 400px;
+            margin: auto;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px;
+            margin: 5px 0;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- MESSAGGIO DI USCITA -->
+    <div id="out" style="color: red; margin-bottom: 10px;"></div>
+
+    <div id="loginSection">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Inserisci username" style="width: 100%; padding: 8px;"><br><br>
+        <input type="password" id="password" placeholder="Inserisci password" style="width: 100%; padding: 8px;"><br><br>
+        <button class="button" onclick="login()">Accedi</button>
+        <button class="button" onclick="profilo()">Profilo</button>
+        <button class="button" onclick="logout()">Logout</button>
+    </div>
+
+    <div id="menuSection" class="hidden">
+        <h2>Benvenuto!</h2>
+        <div id="menu">
+            <button class="button" onclick="seeTask()">Visualizza Task</button>
+            <button class="button" onclick="seeForm()">Aggiungi Task</button>
+            <button class="button" onclick="seeChanger()">Modifica Task</button>
+            <button class="button" onclick="seeDelete()">Elimina Task</button>
+        </div>
+
+        <div id="actions">
+            <div id="view" class="hidden">[Visualizzazione Task]</div>
+
+            <div id="add" class="hidden">[Form Aggiunta Task]
+                <form id="newTask">
+                    <input type="number" id="newTaskId" placeholder="id">
+                    <input type="text" id="newTaskTitle" placeholder="titolo">
+                    <input type="text" id="newTaskDescription" placeholder="descrizione">
+                    <input type="number" id="newTaskPriority" placeholder="priorità">
+                    <input type="text" id="newTaskStatus" placeholder="stato di completamento">
+                    <button type="submit" onclick="newTask(event)">aggiungi</button>
+                </form>
+            </div>
+
+            <div id="edit" class="hidden">[Form Modifica Task]
+                <form id="formEdit">
+                    <input type="number" id="changeTaskId" placeholder="id">
+                    <input type="text" id="changeTaskTitle" placeholder="titolo">
+                    <input type="text" id="changeTaskDescription" placeholder="descrizione">
+                    <input type="number" id="changeTaskPriority" placeholder="priorità">
+                    <input type="text" id="changeTaskStatus" placeholder="stato di completamento">
+                    <button type="submit" onclick="updateTask(event)">aggiorna</button>
+                </form>
+            </div>
+
+            <div id="delete" class="hidden">[Conferma Eliminazione Task]
+                <form id="deleteForm">
+                    <input type="number" id="deleteTaskById" placeholder="id">
+                    <button type="submit" onclick="deleteTask(event)">cancella</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = "http://localhost:8080/api";
+
+        function login() {
+            const u = document.getElementById("username").value;
+            const p = document.getElementById("password").value;
+
+            fetch(`${baseUrl}/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: u, password: p })
+            })
+                .then(r => r.text())
+                .then(token => {
+                    if (token !== "LOGIN_FAILED") {
+                        localStorage.setItem("token", token);
+                        document.getElementById("out").style.color = "green";
+                        document.getElementById("out").textContent = "Login OK. Token: " + token;
+                        document.getElementById("menuSection").classList.remove("hidden");
+                    } else {
+                        document.getElementById("out").style.color = "red";
+                        document.getElementById("out").textContent = "Login fallito";
+                    }
+                });
+        }
+
+        function profilo() {
+            const token = localStorage.getItem("token");
+
+            fetch(`${baseUrl}/profilo`, {
+                headers: { "X-Token": token }
+            })
+                .then(r => r.text())
+                .then(txt => {
+                    document.getElementById("out").style.color = "green";
+                    document.getElementById("out").textContent = txt;
+                    document.getElementById("menuSection").classList.remove("hidden");
+                });
+        }
+
+        function logout() {
+            const token = localStorage.getItem("token");
+
+            fetch(`${baseUrl}/logout`, {
+                method: "POST",
+                headers: { "X-Token": token }
+            })
+                .then(r => r.text())
+                .then(txt => {
+                    document.getElementById("out").style.color = "black";
+                    document.getElementById("out").textContent = txt;
+                    localStorage.removeItem("token");
+                    document.getElementById("menuSection").classList.add("hidden");
+                });
+        }
+
+        function seeTask() {
+            const token = localStorage.getItem("token");
+
+            fetch(`${baseUrl}/seeTask`, {
+                headers: { "X-Token": token }
+            })
+                .then(response => response.json())
+                .then(tasks => {
+                    const container = document.getElementById("view");
+                    container.innerHTML = "";
+                    const ul = document.createElement("ul");
+                    tasks.forEach(task => {
+                        const li = document.createElement("li");
+                        li.textContent = `Id ${task.id} | Titolo: ${task.title} | Descrizione: ${task.description} | Priorità: ${task.priority} | Status: ${task.status}`;
+                        ul.appendChild(li);
+                    });
+                    container.appendChild(ul);
+                    container.classList.remove("hidden");
+                });
+        }
+
+        function seeForm() {
+            document.getElementById("add").classList.toggle("hidden");
+        }
+
+        function seeChanger() {
+            document.getElementById("edit").classList.toggle("hidden");
+        }
+
+        function seeDelete() {
+            document.getElementById("delete").classList.toggle("hidden");
+        }
+
+        function newTask(event) {
+            event.preventDefault();
+
+            const token = localStorage.getItem("token");
+
+            fetch(`${baseUrl}/newTask`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Token": token
+                },
+                body: JSON.stringify({
+                    id: document.getElementById("newTaskId").value,
+                    title: document.getElementById("newTaskTitle").value,
+                    description: document.getElementById("newTaskDescription").value,
+                    priority: document.getElementById("newTaskPriority").value,
+                    status: document.getElementById("newTaskStatus").value
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(msg => { throw new Error(msg); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert("Task creata con successo!");
+                    document.getElementById("newTask").reset();
+                })
+                .catch(error => {
+                    alert("Errore: " + error.message);
+                });
+        }
+
+        function updateTask(event) {
+            event.preventDefault();
+
+            const token = localStorage.getItem("token");
+            const id = document.getElementById("changeTaskId").value;
+
+            fetch(`${baseUrl}/updateTask/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Token": token
+                },
+                body: JSON.stringify({
+                    title: document.getElementById("changeTaskTitle").value,
+                    description: document.getElementById("changeTaskDescription").value,
+                    priority: document.getElementById("changeTaskPriority").value,
+                    status: document.getElementById("changeTaskStatus").value
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(msg => { throw new Error(msg); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert("Task aggiornata con successo!");
+                    document.getElementById("formEdit").reset();
+                })
+                .catch(error => {
+                    alert("Errore: " + error.message);
+                });
+        }
+
+        function deleteTask(event) {
+            event.preventDefault();
+
+            const token = localStorage.getItem("token");
+            const id = document.getElementById("deleteTaskById").value;
+
+            fetch(`${baseUrl}/deleteTask/${id}`, {
+                method: "DELETE",
+                headers: { "X-Token": token }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(msg => { throw new Error(msg); });
+                    }
+                    return response.text();
+                })
+                .then(msg => {
+                    alert(msg);
+                    document.getElementById("deleteForm").reset();
+                })
+                .catch(error => {
+                    alert("Errore: " + error.message);
+                });
+        }
+    </script>
+
+</body>
+
+</html>
