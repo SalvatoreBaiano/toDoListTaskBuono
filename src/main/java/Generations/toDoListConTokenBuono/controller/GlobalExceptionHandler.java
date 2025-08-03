@@ -1,4 +1,4 @@
-package Generations.toDoListConTokenBuonoController;
+package Generations.toDoListConTokenBuono.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

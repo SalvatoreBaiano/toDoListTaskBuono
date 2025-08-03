@@ -1,4 +1,4 @@
-package Generations.toDoListConTokenBuonoController;
+package Generations.toDoListConTokenBuono.controller;
 
 import java.util.*;
 import org.springframework.http.HttpStatus;

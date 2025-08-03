@@ -1,4 +1,4 @@
-package Generations.toDoListConTokenBuonoModel;
+package Generations.toDoListConTokenBuono.model;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
